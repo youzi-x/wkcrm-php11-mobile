@@ -1,0 +1,17 @@
+{
+  "name": "5kcrm-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:h5": "set UNI_INPUT_DIR=.&& uni build -p h5",
+    "dev:h5": "set UNI_INPUT_DIR=.&& uni -p h5"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "latest",
+    "@dcloudio/uni-h5": "latest",
+    "@dcloudio/vite-plugin-uni": "latest",
+    "vite": "latest",
+    "vue": "latest"
+  },
+  "devDependencies": {}
+}

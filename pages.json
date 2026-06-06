@@ -1,0 +1,256 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/workbench/index",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/workbench/config",
+      "style": {
+        "navigationBarTitleText": "首页配置"
+      }
+    },
+    {
+      "path": "pages/activity/form",
+      "style": {
+        "navigationBarTitleText": "写跟进"
+      }
+    },
+    {
+      "path": "pages/customer/index",
+      "style": {
+        "navigationBarTitleText": "客户"
+      }
+    },
+    {
+      "path": "pages/customer/form",
+      "style": {
+        "navigationBarTitleText": "新增客户"
+      }
+    },
+    {
+      "path": "pages/customer/detail",
+      "style": {
+        "navigationBarTitleText": "客户详情"
+      }
+    },
+    {
+      "path": "pages/customer/statistics",
+      "style": {
+        "navigationBarTitleText": "客户统计"
+      }
+    },
+    {
+      "path": "pages/customer/repeat",
+      "style": {
+        "navigationBarTitleText": "查重"
+      }
+    },
+    {
+      "path": "pages/customer/search",
+      "style": {
+        "navigationBarTitleText": "客户"
+      }
+    },
+    {
+      "path": "pages/contacts/index",
+      "style": {
+        "navigationBarTitleText": "联系人"
+      }
+    },
+    {
+      "path": "pages/contacts/form",
+      "style": {
+        "navigationBarTitleText": "新增联系人"
+      }
+    },
+    {
+      "path": "pages/contacts/detail",
+      "style": {
+        "navigationBarTitleText": "联系人详情"
+      }
+    },
+    {
+      "path": "pages/contacts/statistics",
+      "style": {
+        "navigationBarTitleText": "联系人统计"
+      }
+    },
+    {
+      "path": "pages/contacts/repeat",
+      "style": {
+        "navigationBarTitleText": "查重"
+      }
+    },
+    {
+      "path": "pages/contacts/search",
+      "style": {
+        "navigationBarTitleText": "联系人"
+      }
+    },
+    {
+      "path": "pages/leads/index",
+      "style": {
+        "navigationBarTitleText": "线索"
+      }
+    },
+    {
+      "path": "pages/leads/form",
+      "style": {
+        "navigationBarTitleText": "新增线索"
+      }
+    },
+    {
+      "path": "pages/leads/detail",
+      "style": {
+        "navigationBarTitleText": "线索详情"
+      }
+    },
+    {
+      "path": "pages/business/index",
+      "style": {
+        "navigationBarTitleText": "商机"
+      }
+    },
+    {
+      "path": "pages/business/form",
+      "style": {
+        "navigationBarTitleText": "新增商机"
+      }
+    },
+    {
+      "path": "pages/business/detail",
+      "style": {
+        "navigationBarTitleText": "商机详情"
+      }
+    },
+    {
+      "path": "pages/business/statistics",
+      "style": {
+        "navigationBarTitleText": "商机统计"
+      }
+    },
+    {
+      "path": "pages/business/search",
+      "style": {
+        "navigationBarTitleText": "商机"
+      }
+    },
+    {
+      "path": "pages/contract/index",
+      "style": {
+        "navigationBarTitleText": "合同回款"
+      }
+    },
+    {
+      "path": "pages/contract/detail",
+      "style": {
+        "navigationBarTitleText": "合同详情"
+      }
+    },
+    {
+      "path": "pages/receivables/detail",
+      "style": {
+        "navigationBarTitleText": "回款详情"
+      }
+    },
+    {
+      "path": "pages/project/index",
+      "style": {
+        "navigationBarTitleText": "项目"
+      }
+    },
+    {
+      "path": "pages/project/form",
+      "style": {
+        "navigationBarTitleText": "创建项目"
+      }
+    },
+    {
+      "path": "pages/project/detail",
+      "style": {
+        "navigationBarTitleText": "项目详情"
+      }
+    },
+    {
+      "path": "pages/project/task-detail",
+      "style": {
+        "navigationBarTitleText": "任务详情"
+      }
+    },
+    {
+      "path": "pages/project/file-preview",
+      "style": {
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/schedule/index",
+      "style": {
+        "navigationBarTitleText": "通知/待办"
+      }
+    },
+    {
+      "path": "pages/schedule/list",
+      "style": {
+        "navigationBarTitleText": "待办明细",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/apps/index",
+      "style": {
+        "navigationBarTitleText": "全部应用"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/profile/tabbar-config",
+      "style": {
+        "navigationBarTitleText": "底部导航栏设置"
+      }
+    },
+    {
+      "path": "pages/profile/theme",
+      "style": {
+        "navigationBarTitleText": "更换主题"
+      }
+    },
+    {
+      "path": "pages/common/detail",
+      "style": {
+        "navigationBarTitleText": "详情"
+      }
+    },
+    {
+      "path": "pages/common/map",
+      "style": {
+        "navigationBarTitleText": "地图"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "CRM",
+    "navigationBarBackgroundColor": "#f3f6fb",
+    "backgroundColor": "#f3f6fb",
+    "app-plus": {
+      "animationType": "slide-in-right",
+      "animationDuration": 420,
+      "popGesture": "close"
+    }
+  }
+}
