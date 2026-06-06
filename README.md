@@ -95,39 +95,6 @@ utils/config.js
 
 部署到不同环境时，请根据实际域名、接口地址和跨域策略调整相关配置。
 
-## 上传 GitHub 注意事项
-
-如果通过 GitHub 网页拖拽上传，建议上传源码文件，不建议上传依赖、缓存和构建产物。
-
-建议不要上传：
-
-```text
-node_modules/
-dist/
-unpackage/
-.hbuilderx/
-.env
-*.log
-```
-
-建议确认已经上传：
-
-```text
-api/
-components/
-pages/
-static/
-store/
-utils/
-App.vue
-main.js
-manifest.json
-pages.json
-package.json
-vite.config.js
-```
-
-其中 `pages/`、`utils/`、`api/` 等目录是移动端源码的重要组成部分，缺少后项目可能无法正常运行或构建。
 
 ## 仓库描述建议
 
