@@ -63,6 +63,7 @@
             </view>
             <view class="record-body">
               <text class="record-content">{{ item.content || '--' }}</text>
+              <FollowRecordFiles :record="item" />
               <text class="record-line">跟进类型：{{ item.category || item.activity_type_name || '--' }}</text>
               <text class="record-line">有效跟进人：{{ item.valid_user_name || '--' }}</text>
             </view>
@@ -167,11 +168,13 @@ import {
   getCrmTeam,
   getModuleFields
 } from '../../api/crm'
+import FollowRecordFiles from '../../components/FollowRecordFiles.vue'
 import { normalizeFields } from '../../utils/field'
 import { isMappableField, openMapLocation } from '../../utils/map'
 import { ensureLogin } from '../../utils/router'
 
 export default {
+  components: { FollowRecordFiles },
   data() {
     return {
       id: '',

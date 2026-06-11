@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="receivables-detail-page">
     <view class="top-bg"></view>
 
@@ -374,4 +374,3 @@ export default {
   font-size: 25rpx;
 }
 </style>
-

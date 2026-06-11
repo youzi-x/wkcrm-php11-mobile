@@ -70,6 +70,7 @@
 
             <view class="record-body">
               <text class="record-content">{{ item.content || '--' }}</text>
+              <FollowRecordFiles :record="item" />
               <text class="record-line">拜访计划：{{ recordNextTime(item) || '--' }}</text>
               <text class="record-line">跟进类型：{{ item.category || '--' }}</text>
               <text v-if="recordContactDisplay(item)" class="record-line">跟进联系人：{{ recordContactDisplay(item) }}</text>
@@ -160,6 +161,29 @@
           placeholder="请输入跟进内容"
           placeholder-style="color: var(--crm-text-muted)"
         />
+        <view class="record-image-panel">
+          <view class="record-image-head">
+            <text class="record-image-title">图片</text>
+            <text v-if="canEditRecordFiles" class="record-image-add" @click="chooseRecordImage">上传图片</text>
+          </view>
+          <view v-if="recordFiles.length" class="record-image-list">
+            <view v-for="(file, index) in recordFiles" :key="recordFileKey(file, index)" class="record-image-item">
+              <image
+                v-if="isImageFile(file)"
+                class="record-image-thumb"
+                :src="recordImageThumb(file)"
+                mode="aspectFill"
+                @click="previewRecordImage(file)"
+              />
+              <view v-else class="record-file-chip">
+                <text class="record-file-icon">附</text>
+                <text class="record-file-name">{{ recordFileName(file) }}</text>
+              </view>
+              <text v-if="canEditRecordFiles" class="record-image-remove" @click.stop="removeRecordFile(file)">×</text>
+            </view>
+          </view>
+          <text v-else class="record-image-empty">暂无图片</text>
+        </view>
         <view class="record-form-fields">
           <picker
             :range="recordContactOptions"
@@ -231,6 +255,7 @@
 <script>
 import {
   createRecord,
+  deleteUploadedFile,
   deleteCustomerFollowRecord,
   deleteRecord,
   getBusinessList,
@@ -249,11 +274,17 @@ import {
   updateCustomerFollowRecord,
   updateRecord
 } from '../../api/crm'
+import FollowRecordFiles from '../../components/FollowRecordFiles.vue'
+import { BASE_URL } from '../../utils/config'
 import { normalizeFields } from '../../utils/field'
 import { isMappableField, openMapLocation } from '../../utils/map'
 import { ensureLogin } from '../../utils/router'
+import { getAuth } from '../../utils/storage'
+
+const IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg']
 
 export default {
+  components: { FollowRecordFiles },
   data() {
     return {
       id: '',
@@ -290,6 +321,9 @@ export default {
       recordContacts: [],
       recordNextDate: '',
       recordNextClock: '09:00',
+      recordFiles: [],
+      recordRemovedFiles: [],
+      recordUploading: false,
       recordForm: {
         content: '',
         category: '',
@@ -378,6 +412,15 @@ export default {
     recordReminderLabel() {
       if (!this.recordNextDate) return '请选择'
       return `${this.recordNextDate} ${this.recordNextClock || '09:00'}`
+    },
+    canEditRecordFiles() {
+      return true
+    },
+    recordImageUrls() {
+      return this.recordFiles
+        .filter((file) => this.isImageFile(file))
+        .map((file) => this.recordFileUrl(file))
+        .filter(Boolean)
     },
     addressItems() {
       const address = this.customerAddressText()
@@ -552,11 +595,66 @@ export default {
       list.forEach((item) => {
         const key = this.recordKey(item)
         const duplicateKey = this.recordDuplicateKey(item)
-        if (seen.has(key) || seen.has(duplicateKey)) return
+        if (seen.has(key) || seen.has(duplicateKey)) {
+          const index = records.findIndex((record) => {
+            return this.recordKey(record) === key
+              || this.recordKey(record) === duplicateKey
+              || this.recordDuplicateKey(record) === duplicateKey
+              || this.recordDuplicateKey(record) === key
+          })
+          if (index >= 0) records.splice(index, 1, this.mergeRecordItem(records[index], item))
+          return
+        }
         seen.add(key)
         seen.add(duplicateKey)
         records.push(item)
       })
+    },
+    mergeRecordItem(target = {}, source = {}) {
+      const preferSource = this.recordSource(source) === 'crm_activity' && this.recordSource(target) === 'admin_record'
+      const merged = preferSource ? { ...target, ...source } : { ...source, ...target }
+      merged.imgList = this.mergeFileLists(
+        target.imgList,
+        source.imgList,
+        target.imageList,
+        source.imageList,
+        target.images,
+        source.images,
+        target.dataInfo && target.dataInfo.imgList,
+        source.dataInfo && source.dataInfo.imgList,
+        target.dataInfo && target.dataInfo.imageList,
+        source.dataInfo && source.dataInfo.imageList,
+        target.dataInfo && target.dataInfo.images,
+        source.dataInfo && source.dataInfo.images
+      )
+      merged.fileList = this.mergeFileLists(
+        target.fileList,
+        source.fileList,
+        target.files,
+        source.files,
+        target.fileInfo,
+        source.fileInfo,
+        target.dataInfo && target.dataInfo.fileList,
+        source.dataInfo && source.dataInfo.fileList,
+        target.dataInfo && target.dataInfo.files,
+        source.dataInfo && source.dataInfo.files,
+        target.dataInfo && target.dataInfo.fileInfo,
+        source.dataInfo && source.dataInfo.fileInfo
+      )
+      return merged
+    },
+    mergeFileLists(...lists) {
+      const seen = new Set()
+      const files = []
+      lists.forEach((list) => {
+        this.normalizeRecordFileList(list).forEach((file) => {
+          const key = this.recordFileKey(file, files.length)
+          if (seen.has(key)) return
+          seen.add(key)
+          files.push(file)
+        })
+      })
+      return files
     },
     normalizeRecordItem(item = {}, source = '') {
       const record = {
@@ -573,6 +671,22 @@ export default {
       if (source === 'crm_activity') {
         record.activity_id = record.activity_id || record.id
       }
+      record.imgList = this.mergeFileLists(
+        record.imgList,
+        record.imageList,
+        record.images,
+        record.dataInfo && record.dataInfo.imgList,
+        record.dataInfo && record.dataInfo.imageList,
+        record.dataInfo && record.dataInfo.images
+      )
+      record.fileList = this.mergeFileLists(
+        record.fileList,
+        record.files,
+        record.fileInfo,
+        record.dataInfo && record.dataInfo.fileList,
+        record.dataInfo && record.dataInfo.files,
+        record.dataInfo && record.dataInfo.fileInfo
+      )
 
       return record
     },
@@ -917,6 +1031,234 @@ export default {
       const time = new Date(normalized).getTime()
       return Number.isFinite(time) ? time : 0
     },
+    normalizeRecordFileList(value) {
+      if (!value) return []
+      if (Array.isArray(value)) return value.filter(Boolean)
+      if (typeof value === 'object' || typeof value === 'string') return [value]
+      return []
+    },
+    recordFilesFrom(item = {}) {
+      return this.mergeFileLists(
+        item.imgList,
+        item.imageList,
+        item.images,
+        item.fileList,
+        item.files,
+        item.fileInfo,
+        item.dataInfo && item.dataInfo.imgList,
+        item.dataInfo && item.dataInfo.imageList,
+        item.dataInfo && item.dataInfo.images,
+        item.dataInfo && item.dataInfo.fileList,
+        item.dataInfo && item.dataInfo.files,
+        item.dataInfo && item.dataInfo.fileInfo
+      )
+    },
+    recordFileKey(file, index = 0) {
+      if (typeof file === 'string') return file || index
+      return file.file_id || file.id || file.save_name || file.file_path || file.full_path || file.path || file.url || index
+    },
+    recordFileName(file) {
+      if (typeof file === 'string') return file.split('/').pop() || '附件'
+      return file.name || file.file_name || file.save_name || '附件'
+    },
+    recordFileExt(file) {
+      if (typeof file === 'string') {
+        const match = file.toLowerCase().match(/\.([a-z0-9]+)(?:\?|#|$)/)
+        return match ? match[1] : ''
+      }
+      const source = [
+        file.ext,
+        file.name,
+        file.file_name,
+        file.save_name,
+        file.file_path,
+        file.file_path_thumb,
+        file.full_path,
+        file.path,
+        file.local_path,
+        file.tempFilePath,
+        file.url
+      ].filter(Boolean).join(' ')
+      const match = String(source).toLowerCase().match(/\.([a-z0-9]+)(?:\?|#|$)/)
+      return match ? match[1] : ''
+    },
+    isImageFile(file) {
+      if (!file) return false
+      if (typeof file === 'object' && ['img', 'image'].includes(file.types)) return true
+      if (typeof file === 'object' && (file.file_path_thumb || file.thumb_path || file.thumb)) return true
+      return IMAGE_EXTS.includes(this.recordFileExt(file))
+    },
+    resolveRecordFileUrl(url) {
+      const value = String(url || '').trim()
+      if (!value) return ''
+      if (/^(https?:)?\/\//.test(value) || /^(data|blob):/.test(value)) {
+        return value.startsWith('//') && typeof window !== 'undefined' ? `${window.location.protocol}${value}` : value
+      }
+      if (value.startsWith('/') && typeof window !== 'undefined') {
+        return `${window.location.origin}${value}`
+      }
+      return `${BASE_URL}${value.replace(/^\.?\//, '')}`
+    },
+    recordFileUrl(file) {
+      if (typeof file === 'string') return this.resolveRecordFileUrl(file)
+      if (file._local) return file.local_path || file.path || file.tempFilePath || file.url || ''
+      return this.resolveRecordFileUrl(file.file_path || file.full_path || file.path || file.url)
+    },
+    recordImageThumb(file) {
+      if (typeof file === 'string') return this.resolveRecordFileUrl(file)
+      if (file._local) return file.local_path || file.path || file.tempFilePath || file.url || ''
+      return this.resolveRecordFileUrl(file.file_path_thumb || file.thumb_path || file.thumb || file.file_path || file.full_path || file.path || file.url)
+    },
+    previewRecordImage(file) {
+      if (!this.recordImageUrls.length) return
+      const current = this.recordFileUrl(file)
+      uni.previewImage({
+        urls: this.recordImageUrls,
+        current: current || this.recordImageUrls[0]
+      })
+    },
+    chooseRecordImage() {
+      if (!this.canEditRecordFiles || this.recordUploading) return
+      uni.chooseImage({
+        count: 6,
+        success: async (result) => {
+          const files = result.tempFiles || result.tempFilePaths || []
+          if (this.editingRecordSource === 'admin_record') {
+            const localFiles = files.map((file) => this.localRecordFile(file, 'img')).filter((file) => file.local_path)
+            this.recordFiles = this.mergeFileLists(this.recordFiles, localFiles)
+            if (localFiles.length) uni.showToast({ title: '保存后生效', icon: 'none' })
+            return
+          }
+          await this.uploadRecordFiles(files, 'img')
+        }
+      })
+    },
+    localRecordFile(item, type = 'img') {
+      const file = typeof item === 'string' ? { path: item, name: item.split('/').pop() } : (item || {})
+      const filePath = file.path || file.tempFilePath || file.local_path || file.url || ''
+      return {
+        ...file,
+        name: file.name || (filePath ? filePath.split('/').pop() : '图片'),
+        local_path: filePath,
+        path: filePath,
+        types: type,
+        _local: true
+      }
+    },
+    async uploadRecordFiles(list = [], type = 'img') {
+      const files = list.map((item) => this.localRecordFile(item, type))
+      if (!files.length) return
+      this.recordUploading = true
+      uni.showLoading({ title: '上传中' })
+      try {
+        for (const file of files) {
+          const uploaded = await this.uploadOneRecordFile(file, type)
+          if (uploaded && uploaded.file_id) {
+            this.recordFiles = this.mergeFileLists(this.recordFiles, [{ ...uploaded, types: type }])
+          }
+        }
+        uni.showToast({ title: '上传成功', icon: 'success' })
+      } finally {
+        this.recordUploading = false
+        uni.hideLoading()
+      }
+    },
+    uploadOneRecordFile(file, type = 'img', extraFormData = {}) {
+      const auth = getAuth()
+      const filePath = file.path || file.tempFilePath || file.local_path
+      return new Promise((resolve, reject) => {
+        if (!filePath) {
+          uni.showToast({ title: '图片地址不存在', icon: 'none' })
+          reject(new Error('missing file path'))
+          return
+        }
+        uni.uploadFile({
+          url: `${BASE_URL}admin/file/save`,
+          filePath,
+          name: 'file',
+          formData: {
+            type,
+            ...extraFormData
+          },
+          header: {
+            authKey: auth.authKey || '',
+            sessionId: auth.sessionId || ''
+          },
+          success: (response) => {
+            let result = response.data || {}
+            if (typeof result === 'string') {
+              try {
+                result = JSON.parse(result)
+              } catch (error) {
+                reject(error)
+                return
+              }
+            }
+            if (result.code === 200 && result.data) {
+              resolve({
+                ...result.data,
+                name: result.data.name || file.name || '图片',
+                types: type
+              })
+              return
+            }
+            uni.showToast({ title: result.error || result.msg || '上传失败', icon: 'none' })
+            reject(result)
+          },
+          fail: (error) => {
+            uni.showToast({ title: '上传失败', icon: 'none' })
+            reject(error)
+          }
+        })
+      })
+    },
+    removeRecordFile(file) {
+      if (this.editingRecordSource === 'admin_record' && file && !file._local) {
+        const saveName = this.recordFileSaveName(file)
+        if (!saveName) {
+          uni.showToast({ title: '图片缺少删除标识', icon: 'none' })
+          return
+        }
+        const key = this.recordFileKey(file)
+        const exists = this.recordRemovedFiles.some((item) => this.recordFileKey(item) === key)
+        if (!exists) this.recordRemovedFiles.push(file)
+      }
+      const key = this.recordFileKey(file)
+      this.recordFiles = this.recordFiles.filter((item, index) => this.recordFileKey(item, index) !== key)
+    },
+    recordFileSaveName(file) {
+      if (!file || typeof file === 'string') return ''
+      if (file.save_name) return file.save_name
+      const source = file.file_path || file.full_path || file.path || file.url || ''
+      const match = String(source).match(/uploads[\\/]+(.+?)(?:\?|#|$)/i)
+      return match ? match[1].replace(/\\/g, '/') : ''
+    },
+    recordFileId(file) {
+      if (!file || typeof file === 'string') return ''
+      return file.file_id || file.id || ''
+    },
+    recordFileIds() {
+      return this.recordFiles.map((file) => this.recordFileId(file)).filter(Boolean)
+    },
+    async syncAdminRecordFiles(recordId) {
+      if (!recordId) return
+      const pendingFiles = this.recordFiles.filter((file) => file && file._local)
+      for (const file of pendingFiles) {
+        await this.uploadOneRecordFile(file, file.types || 'img', {
+          module: 'admin_record',
+          module_id: recordId
+        })
+      }
+
+      for (const file of this.recordRemovedFiles) {
+        const saveName = this.recordFileSaveName(file)
+        if (!saveName) continue
+        await deleteUploadedFile({
+          save_name: saveName,
+          module: 'admin_record'
+        })
+      }
+    },
     toggleRecordOrder() {
       this.recordOrder = this.recordOrder === 'desc' ? 'asc' : 'desc'
     },
@@ -994,6 +1336,9 @@ export default {
       this.editingRecord = null
       this.recordNextDate = ''
       this.recordNextClock = '09:00'
+      this.recordFiles = []
+      this.recordRemovedFiles = []
+      this.recordUploading = false
       this.recordForm = {
         content: '',
         category: '',
@@ -1019,6 +1364,8 @@ export default {
       this.editingRecordId = this.recordActionId(item)
       this.editingRecordSource = this.recordSource(item)
       this.editingRecord = item
+      this.recordFiles = this.recordFilesFrom(item)
+      this.recordRemovedFiles = []
       this.recordForm = {
         content: item.content || '',
         category: item.category || '',
@@ -1139,6 +1486,7 @@ export default {
       const category = String(this.recordForm.category || '').trim()
       const nextTime = this.buildRecordNextTime()
       const contactsIds = this.buildRecordContactsIds()
+      const fileIds = this.recordFileIds()
       this.recordLoading = true
       try {
         if (this.editingRecordId) {
@@ -1151,6 +1499,7 @@ export default {
               next_time: nextTime,
               contacts_ids: contactsIds
             })
+            await this.syncAdminRecordFiles(this.editingRecordId)
           } else {
             await updateRecord({
               activity_id: this.editingRecordId,
@@ -1159,7 +1508,8 @@ export default {
               content,
               category,
               next_time: nextTime,
-              contacts_ids: contactsIds
+              contacts_ids: contactsIds,
+              file_id: fileIds
             })
           }
           uni.showToast({ title: '修改成功', icon: 'success' })
@@ -1169,6 +1519,9 @@ export default {
             activity_type_id: this.id,
             content,
             category: category || '电话',
+            next_time: nextTime,
+            contacts_ids: contactsIds,
+            file_id: fileIds,
             is_event: 0
           })
           uni.showToast({ title: '保存成功', icon: 'success' })
@@ -1701,6 +2054,106 @@ export default {
   background: var(--crm-input-bg);
   color: var(--crm-text);
   font-size: 27rpx;
+}
+
+.record-image-panel {
+  margin-top: 18rpx;
+  padding: 18rpx 0;
+  border-top: 1rpx solid var(--crm-border);
+}
+
+.record-image-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14rpx;
+}
+
+.record-image-title {
+  color: var(--crm-text);
+  font-size: 27rpx;
+}
+
+.record-image-add {
+  color: var(--crm-primary);
+  font-size: 25rpx;
+}
+
+.record-image-list {
+  display: grid;
+  grid-template-columns: repeat(4, 118rpx);
+  gap: 14rpx;
+}
+
+.record-image-item {
+  position: relative;
+  width: 118rpx;
+  min-height: 118rpx;
+}
+
+.record-image-thumb {
+  display: block;
+  width: 118rpx;
+  height: 118rpx;
+  border-radius: 8rpx;
+  background: var(--crm-soft-bg);
+  border: 1rpx solid var(--crm-border);
+}
+
+.record-image-remove {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 50%;
+  background: rgba(15, 23, 42, 0.76);
+  color: #ffffff;
+  font-size: 26rpx;
+  line-height: 32rpx;
+  text-align: center;
+}
+
+.record-file-chip {
+  display: flex;
+  width: 118rpx;
+  height: 118rpx;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10rpx;
+  padding: 10rpx 12rpx;
+  border-radius: 8rpx;
+  background: var(--crm-soft-bg);
+  border: 1rpx solid var(--crm-border);
+}
+
+.record-file-icon {
+  flex: 0 0 34rpx;
+  width: 34rpx;
+  height: 34rpx;
+  border-radius: 6rpx;
+  background: var(--crm-primary);
+  color: #ffffff;
+  font-size: 20rpx;
+  line-height: 34rpx;
+  text-align: center;
+}
+
+.record-file-name {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--crm-text);
+  font-size: 23rpx;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-image-empty {
+  display: block;
+  color: var(--crm-text-muted);
+  font-size: 25rpx;
 }
 
 .record-form-fields {

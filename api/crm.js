@@ -182,6 +182,10 @@ export function updateCustomerFollowRecord(data = {}) {
   return post('admin/record/update', data)
 }
 
+export function deleteUploadedFile(data = {}) {
+  return post('admin/file/delete', data)
+}
+
 export function deleteCustomerFollowRecord(recordId) {
   return post('admin/record/delete', {
     id: recordId

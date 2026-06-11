@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page-shell stat-page">
     <view class="filter-bar">
       <view class="filter-item">
@@ -209,4 +209,3 @@ export default {
   font-size: 26rpx;
 }
 </style>
-

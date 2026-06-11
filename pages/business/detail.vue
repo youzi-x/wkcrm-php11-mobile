@@ -85,6 +85,7 @@
             </view>
             <view class="record-body">
               <text class="record-content">{{ item.content || '--' }}</text>
+              <FollowRecordFiles :record="item" />
               <text class="record-line">下次联系：{{ item.next_time || '--' }}</text>
               <text class="record-line">跟进方式：{{ item.category || '--' }}</text>
             </view>
@@ -174,11 +175,13 @@ import {
   getCrmTeam,
   getModuleFields
 } from '../../api/crm'
+import FollowRecordFiles from '../../components/FollowRecordFiles.vue'
 import { normalizeFields } from '../../utils/field'
 import { isMappableField, openMapLocation } from '../../utils/map'
 import { ensureLogin } from '../../utils/router'
 
 export default {
+  components: { FollowRecordFiles },
   data() {
     return {
       id: '',

@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page-shell search-page">
     <view class="search-box">
       <input v-model="search" class="search-input" placeholder="请输入客户名称/手机/电话" confirm-type="search" focus @confirm="loadList" />
@@ -129,4 +129,3 @@ export default {
   font-size: 26rpx;
 }
 </style>
-

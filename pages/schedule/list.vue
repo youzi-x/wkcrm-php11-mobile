@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="todo-list-page">
     <view class="summary-card">
       <text class="summary-title">{{ title }}</text>
@@ -353,4 +353,3 @@ export default {
   padding: 30rpx 0;
 }
 </style>
-

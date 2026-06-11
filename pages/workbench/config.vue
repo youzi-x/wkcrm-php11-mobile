@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="config-page">
     <view class="section">
       <view class="section-title">
@@ -217,4 +217,3 @@ export default {
   font-weight: 700;
 }
 </style>
-

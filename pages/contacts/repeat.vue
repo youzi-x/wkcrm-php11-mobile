@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page-shell repeat-page">
     <view class="search-card">
       <picker :range="typeOptions" range-key="label" :value="typeIndex" @change="changeType">
@@ -195,4 +195,3 @@ export default {
   font-size: 44rpx;
 }
 </style>
-
